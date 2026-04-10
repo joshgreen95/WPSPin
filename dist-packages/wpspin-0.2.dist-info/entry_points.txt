@@ -1,3 +1,0 @@
-[console_scripts]
-wpspin = wpspin.wpspin:main
-

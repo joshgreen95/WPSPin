@@ -1,4 +1,12 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# WPS PIN generator — standalone script, no installation required
+# Original author: drygdryg (MIT License)
+
+import argparse
+import sys
+
+
 class NetworkAddress():
     def __init__(self, mac):
         if isinstance(mac, int):
@@ -89,7 +97,7 @@ class WPSpin():
         self.algos['pinNIC2'] = {'name': 'NIC * 2', 'mode': self.ALGO_MAC, 'gen': self.pinNIC2}
         self.algos['pinNIC3'] = {'name': 'NIC * 3', 'mode': self.ALGO_MAC, 'gen': self.pinNIC3}
         self.algos['pinOUIaddNIC'] = {'name': 'OUI + NIC', 'mode': self.ALGO_MAC, 'gen': self.pinOUIaddNIC}
-        self.algos['pinOUIsubNIC'] = {'name': 'OUI − NIC', 'mode': self.ALGO_MAC, 'gen': self.pinOUIsubNIC}
+        self.algos['pinOUIsubNIC'] = {'name': 'OUI \u2212 NIC', 'mode': self.ALGO_MAC, 'gen': self.pinOUIsubNIC}
         self.algos['pinOUIxorNIC'] = {'name': 'OUI ^ NIC', 'mode': self.ALGO_MAC, 'gen': self.pinOUIxorNIC}
         # Static pin algos
         self.algos['pinEmpty'] = {'name': 'Empty PIN', 'mode': self.ALGO_EMPTY, 'gen': lambda mac: ''}
@@ -117,11 +125,6 @@ class WPSpin():
         self.algos['pinONO'] = {'name': 'CBN ONO', 'mode': self.ALGO_STATIC, 'gen': lambda mac: 9575521}
 
     def checksum(self, pin):
-        '''
-        Standard WPS checksum algorithm.
-        @pin — A 7 digit pin to calculate the checksum for.
-        Returns the checksum value.
-        '''
         accum = 0
         while pin:
             accum += (3 * (pin % 10))
@@ -131,11 +134,6 @@ class WPSpin():
         return ((10 - accum % 10) % 10)
 
     def generate(self, algo, mac):
-        '''
-        WPS pin generator
-        @algo — the WPS pin algorithm ID
-        Returns the WPS pin string value
-        '''
         mac = NetworkAddress(mac)
         if algo not in self.algos:
             raise ValueError('Invalid WPS pin algorithm')
@@ -147,9 +145,6 @@ class WPSpin():
         return pin.zfill(8)
 
     def getAll(self, mac, get_static=True):
-        '''
-        Get all WPS pin's for single MAC
-        '''
         res = []
         for ID, algo in self.algos.items():
             if algo['mode'] == self.ALGO_STATIC and not get_static:
@@ -157,7 +152,7 @@ class WPSpin():
             item = {}
             item['id'] = ID
             if algo['mode'] == self.ALGO_STATIC:
-                item['name'] = 'Static PIN — ' + algo['name']
+                item['name'] = 'Static PIN \u2014 ' + algo['name']
             else:
                 item['name'] = algo['name']
             item['pin'] = self.generate(ID, mac)
@@ -165,9 +160,6 @@ class WPSpin():
         return res
 
     def getList(self, mac, get_static=True):
-        '''
-        Get all WPS pin's for single MAC as list
-        '''
         res = []
         for ID, algo in self.algos.items():
             if algo['mode'] == self.ALGO_STATIC and not get_static:
@@ -176,9 +168,6 @@ class WPSpin():
         return res
 
     def getSuggested(self, mac):
-        '''
-        Get all suggested WPS pin's for single MAC
-        '''
         algos = self._suggest(mac)
         res = []
         for ID in algos:
@@ -186,7 +175,7 @@ class WPSpin():
             item = {}
             item['id'] = ID
             if algo['mode'] == self.ALGO_STATIC:
-                item['name'] = 'Static PIN — ' + algo['name']
+                item['name'] = 'Static PIN \u2014 ' + algo['name']
             else:
                 item['name'] = algo['name']
             item['pin'] = self.generate(ID, mac)
@@ -194,9 +183,6 @@ class WPSpin():
         return res
 
     def getSuggestedList(self, mac):
-        '''
-        Get all suggested WPS pin's for single MAC as list
-        '''
         algos = self._suggest(mac)
         res = []
         for algo in algos:
@@ -204,10 +190,6 @@ class WPSpin():
         return res
 
     def _suggest(self, mac):
-        '''
-        Get algos suggestions for single MAC
-        Returns the algo ID
-        '''
         mac = mac.replace(':', '').upper()
         algorithms = {
             'pin24': ('04BF6D', '0E5D4E', '107BEF', '14A9E3', '28285D', '2A285D', '32B2DC', '381766', '404A03', '4E5D4E', '5067F0', '5CF4AB', '6A285D', '8E5D4E', 'AA285D', 'B0B2DC', 'C86C87', 'CC5D4E', 'CE5D4E', 'EA285D', 'E243F6', 'EC43F6', 'EE43F6', 'F2B2DC', 'FCF528', 'FEF528', '4C9EFF', '0014D1', 'D8EB97', '1C7EE5', '84C9B2', 'FC7516', '14D64D', '9094E4', 'BCF685', 'C4A81D', '00664B', '087A4C', '14B968', '2008ED', '346BD3', '4CEDDE', '786A89', '88E3AB', 'D46E5C', 'E8CD2D', 'EC233D', 'ECCB30', 'F49FF3', '20CF30', '90E6BA', 'E0CB4E', 'D4BF7F4', 'F8C091', '001CDF', '002275', '08863B', '00B00C', '081075', 'C83A35', '0022F7', '001F1F', '00265B', '68B6CF', '788DF7', 'BC1401', '202BC1', '308730', '5C4CA9', '62233D', '623CE4', '623DFF', '6253D4', '62559C', '626BD3', '627D5E', '6296BF', '62A8E4', '62B686', '62C06F', '62C61F', '62C714', '62CBA8', '62CDBE', '62E87B', '6416F0', '6A1D67', '6A233D', '6A3DFF', '6A53D4', '6A559C', '6A6BD3', '6A96BF', '6A7D5E', '6AA8E4', '6AC06F', '6AC61F', '6AC714', '6ACBA8', '6ACDBE', '6AD15E', '6AD167', '721D67', '72233D', '723CE4', '723DFF', '7253D4', '72559C', '726BD3', '727D5E', '7296BF', '72A8E4', '72C06F', '72C61F', '72C714', '72CBA8', '72CDBE', '72D15E', '72E87B', '0026CE', '9897D1', 'E04136', 'B246FC', 'E24136', '00E020', '5CA39D', 'D86CE9', 'DC7144', '801F02', 'E47CF9', '000CF6', '00A026', 'A0F3C1', '647002', 'B0487A', 'F81A67', 'F8D111', '34BA9A', 'B4944E'),
@@ -269,9 +251,7 @@ class WPSpin():
         return mac.integer
 
     def pinDLink(self, mac):
-        # Get the NIC part
         nic = mac.integer & 0xFFFFFF
-        # Calculating pin
         pin = nic ^ 0x55AA55
         pin ^= (((pin & 0xF) << 4) +
                 ((pin & 0xF) << 8) +
@@ -343,8 +323,6 @@ class WPSpin():
 
 
 def main():
-    import argparse
-
     parser = argparse.ArgumentParser(
         description='WPS PIN generator written in Python 3',
         epilog='Example: %(prog)s 11:22:33:44:55:66'
@@ -353,12 +331,12 @@ def main():
         'mac',
         type=str,
         help='target MAC address to generate PIN code. Example: 11:22:33:44:55:66'
-        )
+    )
     parser.add_argument(
         '-A', '--get-all',
         action='store_true',
         help='get all PIN codes in addition to the suggested ones for a single MAC'
-        )
+    )
 
     args = parser.parse_args()
 
@@ -375,3 +353,7 @@ def main():
             print('{:<10} {}'.format(pin['pin'], pin['name']))
     else:
         print('No PINs found — try to get all PINs (-A)')
+
+
+if __name__ == '__main__':
+    sys.exit(main())
